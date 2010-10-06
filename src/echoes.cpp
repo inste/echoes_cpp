@@ -12,8 +12,13 @@
 #include "WavFile.h"
 #include "libao_out.h"
 #include "fftw.h"
+//#include "Transpose.h"
+
+
+#include <soundtouch/SoundTouch.h>
 
 using namespace std;
+using namespace soundtouch;
 
 
 /* Notes
@@ -37,7 +42,7 @@ using namespace std;
  */
 
 double compute_freq(int note, int octave) {
-	return 27.5 * pow(2, (octave * 12 + note) / 12.0L);
+	return 27.5 * pow(2, (octave * 12 + note - 9) / 12.0L);
 }
 
 
@@ -48,20 +53,28 @@ int main() {
 	WavInFile wfd("test.wav");
 	libAo_Out out;
 	FFTW_Direct fftw;
+	//Transpose proc;
+	SoundTouch proc;
 
-	double freq, multiplier;
+	double freq;
 	unsigned int i, pos;
 	int time = 100; // Size of sample, msec
 	int samplesize = wfd.getSampleRate() * wfd.getNumChannels() * time / 1000;
 	short * buffer, * monobuffer;
+	float * floatmonobuffer;
 	Harmonic * harmonics;
 
 	buffer = new short[samplesize];
 	monobuffer = new short[samplesize / wfd.getNumChannels()];
+	floatmonobuffer = new float[samplesize / wfd.getNumChannels()];
 	harmonics  = new Harmonic[samplesize / (2 * wfd.getNumChannels())];
 
 	out.Init(wfd.getSampleRate(), wfd.getNumBits(), wfd.getNumChannels());
 	fftw.Init(samplesize / wfd.getNumChannels());
+	//proc.Init(wfd.getSampleRate(), 1, time);
+	proc.setSampleRate(wfd.getSampleRate());
+	proc.setChannels(1);
+//	proc.setSetting(SETTING_USE_AA_FILTER, 1);
 
 	while(!wfd.eof()) {
 		wfd.read(buffer, samplesize);
@@ -77,7 +90,33 @@ int main() {
 				freq = harmonics[i][0];
 				pos = i;
 			}
+
+		chord.push_back(compute_freq(0,4));
+//		chord.push_back(compute_freq(0,4));
+//		chord.push_back(compute_freq(0,4));
+
+
 		freq = pos * 1000.0L / time;
+
+
+		cout << compute_freq(9, 4) << endl;
+		cout << compute_freq(9, 4) / freq <<endl;
+
+		if (freq < 20)
+			freq = 20;
+		proc.setPitch(compute_freq(7, 3) / freq);
+
+		for (i = 0; i < samplesize / wfd.getNumChannels(); ++i)
+			floatmonobuffer[i] = monobuffer[i];
+
+		proc.putSamples(floatmonobuffer, samplesize / wfd.getNumChannels());
+		proc.receiveSamples(floatmonobuffer, samplesize / wfd.getNumChannels());
+
+		for (i = 0; i < samplesize / 2; ++i)
+			buffer[2 * i] = buffer[2 * i + 1] = floatmonobuffer[i];
+//
+		out.PlayBuffer(buffer, samplesize);
+
 		cout << "Frequency: " << freq << "Hz" << endl;
 	}
 
