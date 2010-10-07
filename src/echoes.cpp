@@ -12,13 +12,10 @@
 #include "WavFile.h"
 #include "libao_out.h"
 #include "fftw.h"
-//#include "Transpose.h"
+#include "transposer.h"
 
-
-#include <soundtouch/SoundTouch.h>
 
 using namespace std;
-using namespace soundtouch;
 
 
 /* Notes
@@ -53,28 +50,21 @@ int main() {
 	WavInFile wfd("test.wav");
 	libAo_Out out;
 	FFTW_Direct fftw;
-	//Transpose proc;
-	SoundTouch proc;
+	Transposer proc;
 
 	double freq;
 	unsigned int i, pos;
 	int time = 100; // Size of sample, msec
 	int samplesize = wfd.getSampleRate() * wfd.getNumChannels() * time / 1000;
 	short * buffer, * monobuffer;
-	float * floatmonobuffer;
 	Harmonic * harmonics;
 
 	buffer = new short[samplesize];
 	monobuffer = new short[samplesize / wfd.getNumChannels()];
-	floatmonobuffer = new float[samplesize / wfd.getNumChannels()];
 	harmonics  = new Harmonic[samplesize / (2 * wfd.getNumChannels())];
 
 	out.Init(wfd.getSampleRate(), wfd.getNumBits(), wfd.getNumChannels());
 	fftw.Init(samplesize / wfd.getNumChannels());
-	//proc.Init(wfd.getSampleRate(), 1, time);
-	proc.setSampleRate(wfd.getSampleRate());
-	proc.setChannels(1);
-//	proc.setSetting(SETTING_USE_AA_FILTER, 1);
 
 	while(!wfd.eof()) {
 		wfd.read(buffer, samplesize);
@@ -104,16 +94,12 @@ int main() {
 
 		if (freq < 20)
 			freq = 20;
-		proc.setPitch(compute_freq(7, 3) / freq);
 
-		for (i = 0; i < samplesize / wfd.getNumChannels(); ++i)
-			floatmonobuffer[i] = monobuffer[i];
-
-		proc.putSamples(floatmonobuffer, samplesize / wfd.getNumChannels());
-		proc.receiveSamples(floatmonobuffer, samplesize / wfd.getNumChannels());
+		proc.setParams(wfd.getSampleRate(), compute_freq(7, 3) / freq);
+		proc.processData(monobuffer, monobuffer, samplesize / wfd.getNumChannels());
 
 		for (i = 0; i < samplesize / 2; ++i)
-			buffer[2 * i] = buffer[2 * i + 1] = floatmonobuffer[i];
+			buffer[2 * i] = buffer[2 * i + 1] = monobuffer[i];
 //
 		out.PlayBuffer(buffer, samplesize);
 
