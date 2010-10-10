@@ -1,4 +1,4 @@
-//      transposer.h
+//      mixer.cpp
 //      
 //      Copyright 2010 Ilya <ilya@laptop>
 //      
@@ -18,31 +18,47 @@
 //      MA 02110-1301, USA.
 
 
-#ifndef _TRANSPOSER_H_
-#define _TRANSPOSER_H_
-
-#include <iostream>
-
-#include <soundtouch/SoundTouch.h>
-
-#include "samples.h"
-
-using namespace std;
-using namespace soundtouch;
-
-class Transposer {
-	private:
-		SoundTouch dsp;
-		int samplerate;
-		float pitch;
-	public:
-		Transposer(void);
-		~Transposer(void);
-		
-		void setParams(int srate, float fpitch);
-		void processData(short * src, short * out, int size);
-		struct fsm * processData(short * src, int size);
-};
+#include "mixer.h"
 
 
-#endif /* _TRANSPOSER_H_ */
+Mixer::Mixer(void) {
+	s_count = 0;
+	samples = NULL;
+}
+
+Mixer::~Mixer(void) {
+	Clean();
+}
+
+void Mixer::putSample(struct fsm * sample) {
+	samples = (struct fsm **) realloc(samples, ++s_count * sizeof(struct fsm *));
+	samples[s_count - 1] = sample;
+}
+
+struct fsm * Mixer::getMixed(void) {
+	struct fsm * ret = fsm_alloc(samples[0]->size);
+	int i, j;
+	
+	for (i = 0; i < samples[0]->size; ++i) {
+		ret->data[i] = 0;
+		for (j = 0; j < s_count; ++j)
+			ret->data[i] += samples[j]->data[i];
+		ret->data[i] /= s_count;
+	}
+	
+	return ret;
+}
+
+void Mixer::Clean(void) {
+	int i;
+	
+	for (i = 0; i < s_count; ++i)
+		fsm_free(samples[i]);
+	free(samples);
+	s_count = 0;
+	samples = NULL;
+}
+
+struct fsm * Mixer::operator = (Mixer param) {
+	return param.getMixed();
+}

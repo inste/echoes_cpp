@@ -1,4 +1,4 @@
-//      transposer.h
+//      mixer.h
 //      
 //      Copyright 2010 Ilya <ilya@laptop>
 //      
@@ -18,31 +18,32 @@
 //      MA 02110-1301, USA.
 
 
-#ifndef _TRANSPOSER_H_
-#define _TRANSPOSER_H_
+#ifndef _MIXER_H_
+#define _MIXER_H_
 
 #include <iostream>
-
-#include <soundtouch/SoundTouch.h>
+#include <cstdlib>
 
 #include "samples.h"
 
-using namespace std;
-using namespace soundtouch;
-
-class Transposer {
+class Mixer {
 	private:
-		SoundTouch dsp;
-		int samplerate;
-		float pitch;
+		int s_count;
+		fsm ** samples;
 	public:
-		Transposer(void);
-		~Transposer(void);
+		Mixer(void);
 		
-		void setParams(int srate, float fpitch);
-		void processData(short * src, short * out, int size);
-		struct fsm * processData(short * src, int size);
+		void putSample(struct fsm * sample);
+		
+		struct fsm * getMixed(void);
+		
+		void Clean(void);
+		
+		struct fsm * operator = (Mixer param);
+		
+		~Mixer(void);
 };
 
 
-#endif /* _TRANSPOSER_H_ */
+#endif /* _MIXER_H_ */
+

@@ -1,4 +1,4 @@
-//      transposer.h
+//      samples.h
 //      
 //      Copyright 2010 Ilya <ilya@laptop>
 //      
@@ -18,31 +18,28 @@
 //      MA 02110-1301, USA.
 
 
-#ifndef _TRANSPOSER_H_
-#define _TRANSPOSER_H_
+#ifndef _SAMPLES_H_
+#define _SAMPLES_H_
 
 #include <iostream>
+#include <string>
+#include <stdexcept>
 
-#include <soundtouch/SoundTouch.h>
-
-#include "samples.h"
-
-using namespace std;
-using namespace soundtouch;
-
-class Transposer {
-	private:
-		SoundTouch dsp;
-		int samplerate;
-		float pitch;
-	public:
-		Transposer(void);
-		~Transposer(void);
-		
-		void setParams(int srate, float fpitch);
-		void processData(short * src, short * out, int size);
-		struct fsm * processData(short * src, int size);
+struct fsm {  // Float mono sample
+	int size; // count of elements
+	float * data; // pointer to actual data
 };
 
+struct fsm * fsm_alloc(int size);
+void fsm_free(struct fsm * _fsm);
 
-#endif /* _TRANSPOSER_H_ */
+struct ssm { // Short (16 bit) mono sample
+	int size;
+	short * data;
+};
+
+struct ssm * ssm_alloc(int size);
+void ssm_free(struct ssm * _ssm);
+
+
+#endif /* _SAMPLES_H_ */

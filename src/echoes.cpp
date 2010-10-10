@@ -13,6 +13,8 @@
 #include "libao_out.h"
 #include "fftw.h"
 #include "transposer.h"
+#include "samples.h"
+#include "mixer.h"
 
 
 using namespace std;
@@ -51,16 +53,19 @@ int main() {
 	libAo_Out out;
 	FFTW_Direct fftw;
 	Transposer proc;
+	Mixer mixer;
 
 	double freq;
 	unsigned int i, pos;
 	int time = 100; // Size of sample, msec
 	int samplesize = wfd.getSampleRate() * wfd.getNumChannels() * time / 1000;
 	short * buffer, * monobuffer;
+	struct fsm * fs;
 	Harmonic * harmonics;
 
 	buffer = new short[samplesize];
 	monobuffer = new short[samplesize / wfd.getNumChannels()];
+	fs = fsm_alloc(samplesize / wfd.getNumChannels());
 	harmonics  = new Harmonic[samplesize / (2 * wfd.getNumChannels())];
 
 	out.Init(wfd.getSampleRate(), wfd.getNumBits(), wfd.getNumChannels());
@@ -96,10 +101,20 @@ int main() {
 			freq = 20;
 
 		proc.setParams(wfd.getSampleRate(), compute_freq(7, 3) / freq);
-		proc.processData(monobuffer, monobuffer, samplesize / wfd.getNumChannels());
+		mixer.putSample(proc.processData(monobuffer, samplesize / wfd.getNumChannels()));
+	
+	//	proc.setParams(wfd.getSampleRate(), compute_freq(0, 3) / freq);
+	//	mixer.putSample(proc.processData(monobuffer, samplesize / wfd.getNumChannels()));	
+		
+		proc.setParams(wfd.getSampleRate(), compute_freq(4, 3) / freq);
+		mixer.putSample(proc.processData(monobuffer, samplesize / wfd.getNumChannels()));
+		
+		fs = mixer.getMixed();
+		
+		mixer.Clean();
 
 		for (i = 0; i < samplesize / 2; ++i)
-			buffer[2 * i] = buffer[2 * i + 1] = monobuffer[i];
+			buffer[2 * i] = buffer[2 * i + 1] = fs->data[i];
 //
 		out.PlayBuffer(buffer, samplesize);
 

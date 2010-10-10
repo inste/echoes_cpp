@@ -51,15 +51,17 @@ void Transposer::processData(short * src, short * out, int size) {
 	delete fbuffer;
 }
 
-void Transposer::processData(short * src, float * out, int size) {
+struct fsm * Transposer::processData(short * src, int size) {
 	float * fbuffer = new float[size];
+	struct fsm * out = fsm_alloc(size);
 	int i;
 	
 	for (i = 0; i < size; ++i)
 		fbuffer[i] = src[i];
 	
 	dsp.putSamples(fbuffer, size);
-	dsp.receiveSamples(out, size);
+	dsp.receiveSamples(out->data, size);
 	
 	delete fbuffer;
+	return out;
 }

@@ -1,4 +1,4 @@
-//      transposer.h
+//      samples.c
 //      
 //      Copyright 2010 Ilya <ilya@laptop>
 //      
@@ -18,31 +18,34 @@
 //      MA 02110-1301, USA.
 
 
-#ifndef _TRANSPOSER_H_
-#define _TRANSPOSER_H_
-
-#include <iostream>
-
-#include <soundtouch/SoundTouch.h>
-
 #include "samples.h"
 
-using namespace std;
-using namespace soundtouch;
-
-class Transposer {
-	private:
-		SoundTouch dsp;
-		int samplerate;
-		float pitch;
-	public:
-		Transposer(void);
-		~Transposer(void);
+struct fsm * fsm_alloc(int size) {
+	struct fsm * _fsm;
+	
+	if (size <= 0) {
+		std::string err = "Trying to allocate sample with 0 size";
+		throw std::runtime_error(err);
+	} else {
+		_fsm = new fsm;
+		_fsm->data = new float[size];
+		_fsm->size = size;
+		return _fsm;
+	}
 		
-		void setParams(int srate, float fpitch);
-		void processData(short * src, short * out, int size);
-		struct fsm * processData(short * src, int size);
-};
-
-
-#endif /* _TRANSPOSER_H_ */
+}
+	
+void fsm_free(struct fsm * _fsm) {
+	if (_fsm != NULL) {
+		if (_fsm->data != NULL)
+			delete _fsm->data;
+		else {
+			std::string err = "fsm->data already freed";
+			throw std::runtime_error(err);
+		}
+		delete _fsm;
+	} else {
+		std::string err = "fsm already freed";
+		throw std::runtime_error(err);
+	}
+}
